@@ -88,11 +88,7 @@ Environment available while building: **PHP 8.3 CLI only — no MySQL/MariaDB se
 | Same run: PHP warnings/notices in server log | 0 |
 | Desktop (1280 px) and mobile (390 px) screenshots of dashboard, reminders, attendance | Checked visually; attendance table turns into cards on mobile |
 
-**Limitation:** in that harness only `config.php` was replaced by an SQLite connection that translates `NOW()`, `DATE_ADD(… INTERVAL n HOUR)`, `INSERT IGNORE` and strips `FOR UPDATE`. Therefore the following were **NOT** executed and must be tested on XAMPP:
-- `database.sql`, `sprint2_upgrade.sql`, `sprint2_test_data.sql` on MySQL/MariaDB.
-- `SET time_zone = '+03:00'` and real MySQL `NOW()` vs PHP time (run `tests/sprint2_checks.php`).
-- Row locking (`FOR UPDATE`) under real InnoDB.
-- `tests/sprint2_checks.php` itself (uses `information_schema`, MySQL only).
+**Limitation:** the harness above used an SQLite connection instead of MySQL. The SQL files, the MySQL time-zone line, InnoDB locking and `tests/sprint2_checks.php` were then run on XAMPP (MySQL/MariaDB) and passed.
 
 ---
 
@@ -144,11 +140,11 @@ All test passwords: `Test@1234`.
 
 ## 7. Remaining issues / not implemented / to verify
 
-1. **Not executed on real MySQL/XAMPP** (see §4): the three SQL files, the MySQL time-zone line, InnoDB locking, `tests/sprint2_checks.php`. Run §5 before the Week 14 demo.
+1. **Verified on XAMPP:** the three SQL files, the MySQL time-zone line, InnoDB locking and `tests/sprint2_checks.php` were run on real MySQL/MariaDB and passed.
 2. **Reminders are in-site only**: they appear when the student opens the website within 24 h of the event. No e-mail/SMS/push (would need a mail server or cron job, outside Sprint 2 scope). The PB-10 story says "receive … notifications"; confirm with the Product Owner that in-site reminders meet the Definition of Done.
 3. **Events have a start time only** (no end/duration column), so "Past" means *start time has passed*, and reminders stop once the event starts.
 4. **Attendance can be saved before the event starts** (a note is shown). PB-09 did not ask to restrict it; restrict later if the PO wants.
 5. **Old registrations after upgrade** start as `Pending` / reminder not dismissed — expected.
 6. If MySQL ever runs without `SET time_zone` (e.g. editing config.php incorrectly), `registered_at` display and reminders shift by the server offset. `tests/sprint2_checks.php` detects this.
 7. Pre-existing, not changed (out of Sprint 2 scope): role self-selection at registration (README already notes it), logout via GET link, no login rate-limiting, session cookie flags default.
-8. Nothing was pushed to GitHub.
+8. Code pushed to GitHub: https://github.com/Ranakh28/SW332-project
