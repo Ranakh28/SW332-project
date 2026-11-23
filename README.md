@@ -65,8 +65,6 @@ CampusConnect/
 ├── database.sql            Full schema (new installation)
 ├── sprint2_upgrade.sql     Upgrade a Sprint 1 database to Sprint 2
 ├── demo_data.sql           Realistic demo data
-├── tests/                  Sprint 2 checks and test data
-└── docs/                   Sprint 2 delivery and traceability notes
 ```
 
 ## Time zone
