@@ -50,7 +50,7 @@ Unchanged: `index.php`, `login.php`, `logout.php`, `register.php`, `dashboard.ph
 | | Registered count vs capacity | `capacity-badge` "x / capacity Registered" | ✅ |
 | | Message when no registrations | `.empty` "No students registered for this event yet." | ✅ |
 | | Reachable from club management | `manage-club.php` → "View Attendees" | ✅ |
-| **PB-09** Digital attendance | DB columns (Task 9.1) | `database.sql`, `sprint2_upgrade.sql` | ⚠️ SQL not executed on MySQL here |
+| **PB-09** Digital attendance | DB columns (Task 9.1) | `database.sql`, `sprint2_upgrade.sql` | ✅executed on XAMPP|
 | | Present / Absent per student, Pending kept/allowed | radio group per row, Pending selectable | ✅ incl. back to Pending |
 | | One "Save Attendance" for all rows | single form, single POST | ✅ |
 | | UPDATE not INSERT; PDO prepared statements | `UPDATE registrations SET attendance_status = ? WHERE id = ? AND event_id = ?` | ✅ row count unchanged |
@@ -61,13 +61,13 @@ Unchanged: `index.php`, `login.php`, `logout.php`, `register.php`, `dashboard.ph
 | | Success message | "Attendance saved for N students: x Present, y Absent, z Pending." | ✅ |
 | | Present/Absent/Pending counters, updated after save, kept after refresh | counters computed from DB on every load; Post/Redirect/Get | ✅ |
 | | No duplicate attendance records | attendance lives on the `registrations` row; `UNIQUE (user_id, event_id)` | ✅ |
-| **PB-10** Reminders | Asia/Riyadh for PHP and MySQL | `config.php` | ✅ PHP side; ⚠️ MySQL side needs `tests/sprint2_checks.php` on XAMPP |
+| **PB-10** Reminders | Asia/Riyadh for PHP and MySQL | `config.php` | ✅ PHP side; ✅ MySQL side checked with`tests/sprint2_checks.php` on XAMPP |
 | | `get_upcoming_reminders($user_id)`: own registrations, start in (now, now+24h], not dismissed, nearest first | `helpers.php` | ✅ 12 h shown; 48 h, ended, dismissed, other student's hidden; order checked |
 | | Shown in `header.php` and `student-dashboard.php` | banner on all pages; dashboard section | ✅ |
 | | Title, club, venue, date/time, remaining time, Mark as read | `render_reminders()` | ✅ |
 | | No duplicate when header + dashboard | header banner skipped on dashboard + static guard | ✅ exactly one card |
 | | `dismiss-reminder.php`: login + student, CSRF, ownership, UPDATE to 1, gone after refresh | `dismiss-reminder.php` | ✅ (also: GET → 405, leader → 403, open redirect blocked) |
-| | Test method for 12 h / 48 h / ended / dismissed / time match | `sprint2_test_data.sql` + `tests/sprint2_checks.php` + §5 | ✅ logic; ⚠️ run on XAMPP |
+| | Test method for 12 h / 48 h / ended / dismissed / time match | `sprint2_test_data.sql` + `tests/sprint2_checks.php` + §5 | ✅ run on XAMPP |
 | **PB-11** Student dashboard | `require_student()` | `student-dashboard.php` | ✅ leader 403, guest → login |
 | | Clubs from memberships + clubs; events from registrations + events + clubs | two prepared queries | ✅ |
 | | Ordered by date; Upcoming / Past | Upcoming (soonest first), Past (most recent first) | ✅ |
