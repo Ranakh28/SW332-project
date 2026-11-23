@@ -1,12 +1,8 @@
 <?php
-// Sprint 2 - PB-08: club leader views the registered students of an event.
-// Sprint 2 - PB-09: club leader marks digital attendance (Present / Absent / Pending).
 require 'helpers.php';
 require_leader();
 $id = (int)($_GET['id'] ?? 0);
 
-// PB-08: only the club leader who owns the hosting club can open this page.
-// This check also runs before saving attendance (PB-09), so a POST is never trusted on its own.
 $q = $pdo->prepare('SELECT e.*, c.name AS club_name, c.id AS club_id
     FROM events e JOIN clubs c ON c.id = e.club_id
     WHERE e.id = ? AND c.leader_id = ?');
@@ -14,7 +10,6 @@ $q->execute([$id, current_user()['id']]);
 $event = $q->fetch();
 if (!$event) { http_response_code(403); exit('Access denied. Only the leader of the hosting club can view this attendee list.'); }
 
-// PB-09: save all attendance changes at once.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $submitted = $_POST['attendance'] ?? [];
@@ -23,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('event-attendees.php?id=' . $id);
     }
 
-    // Validate every row before touching the database.
     $changes = [];
     foreach ($submitted as $registrationId => $status) {
         if (!ctype_digit((string)$registrationId) || !is_string($status) || !in_array($status, ATTENDANCE_STATUSES, true)) {
@@ -35,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $pdo->beginTransaction();
-        // Lock this event's registrations and make sure every submitted ID belongs to THIS event.
         $q = $pdo->prepare('SELECT id FROM registrations WHERE event_id = ? FOR UPDATE');
         $q->execute([$id]);
         $validIds = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
@@ -45,8 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('Some students in the form are not registered for this event. Refresh the page and try again. Nothing was saved.', 'error');
             redirect('event-attendees.php?id=' . $id);
         }
-        // UPDATE only (never INSERT): attendance lives on the existing registration row,
-        // so a student can never get a second attendance record for the same event.
         $u = $pdo->prepare('UPDATE registrations SET attendance_status = ? WHERE id = ? AND event_id = ?');
         foreach ($changes as $registrationId => $status) {
             $u->execute([$status, $registrationId, $id]);
@@ -64,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('event-attendees.php?id=' . $id); // Post/Redirect/Get: a refresh will not resubmit the form
 }
 
-// PB-08: join registrations with users for this event (PB-09 adds attendance_status).
 $q = $pdo->prepare('SELECT r.id AS registration_id, r.registered_at, r.attendance_status, u.name, u.email
     FROM registrations r JOIN users u ON u.id = r.user_id
     WHERE r.event_id = ?
@@ -75,7 +65,6 @@ $attendees = $q->fetchAll();
 $total = count($attendees);
 $capacity = (int)$event['capacity'];
 
-// PB-09 / Task 9.3: counters always come from the database, so they are correct after save and refresh.
 $counts = ['Present' => 0, 'Absent' => 0, 'Pending' => 0];
 foreach ($attendees as $a) {
     $status = in_array($a['attendance_status'], ATTENDANCE_STATUSES, true) ? $a['attendance_status'] : 'Pending';
