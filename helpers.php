@@ -13,16 +13,10 @@ function csrf_field() { if (empty($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(
 function verify_csrf() { if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST' && (!isset($_POST['csrf']) || !hash_equals($_SESSION['csrf'] ?? '', (string)$_POST['csrf']))) { http_response_code(419); exit('Invalid request. Refresh the page and try again.'); } }
 verify_csrf();
 
-/* ---------------- Sprint 2 helpers ---------------- */
 
-// PB-09: the only values allowed in registrations.attendance_status.
 const ATTENDANCE_STATUSES = ['Pending', 'Present', 'Absent'];
 
-/**
- * PB-10: events the given student registered for that start after now and within the next 24 hours,
- * whose reminder has not been dismissed, closest first. Uses MySQL NOW(), whose session time zone
- * is set to Asia/Riyadh in config.php, so it matches PHP time.
- */
+
 function get_upcoming_reminders($user_id) {
     global $pdo;
     $q = $pdo->prepare('SELECT r.id AS registration_id, e.id AS event_id, e.title, e.venue, e.event_date,
@@ -39,7 +33,6 @@ function get_upcoming_reminders($user_id) {
     return $q->fetchAll();
 }
 
-// PB-10: "Starts in 11 h 40 min" style label for an event start time.
 function time_remaining_label($eventDate) {
     $seconds = strtotime($eventDate) - time();
     if ($seconds <= 0) return 'Started';
@@ -50,23 +43,18 @@ function time_remaining_label($eventDate) {
     return 'Starts in ' . $hours . ' h ' . $minutes . ' min';
 }
 
-// PB-10: relative URL of the current page, used to come back after "Mark as read".
 function current_page_url() {
     $page = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
     $query = $_SERVER['QUERY_STRING'] ?? '';
     return $query === '' ? $page : $page . '?' . $query;
 }
 
-// PB-10: only allow redirects back to a page of this site (prevents open redirects).
 function safe_return_url($url, $fallback = 'student-dashboard.php') {
     $url = (string)$url;
     return preg_match('/^[a-z0-9\-]+\.php(\?[A-Za-z0-9=&_\-]*)?(#[a-z0-9\-]+)?$/', $url) ? $url : $fallback;
 }
 
-/**
- * PB-10: prints the reminder cards. A static guard makes sure reminders are printed only once
- * per page, so the header and the student dashboard never show the same reminder twice.
- */
+
 function render_reminders(array $reminders, $variant = 'banner') {
     static $rendered = false;
     if ($rendered || !$reminders) return;
