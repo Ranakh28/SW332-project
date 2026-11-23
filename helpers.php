@@ -10,6 +10,87 @@ function require_student() { require_login(); if (current_user()['role'] !== 'st
 function flash($message, $type='success') { $_SESSION['flash'] = ['message'=>$message, 'type'=>$type]; }
 function show_flash() { if (!empty($_SESSION['flash'])) { $f=$_SESSION['flash']; echo '<div class="alert '.e($f['type']).'">'.e($f['message']).'</div>'; unset($_SESSION['flash']); } }
 function csrf_field() { if (empty($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(32)); echo '<input type="hidden" name="csrf" value="'.e($_SESSION['csrf']).'">'; }
-function verify_csrf() { if ($_SERVER['REQUEST_METHOD']==='POST' && (!isset($_POST['csrf']) || !hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf']))) { http_response_code(419); exit('Invalid request. Refresh the page and try again.'); } }
+function verify_csrf() { if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST' && (!isset($_POST['csrf']) || !hash_equals($_SESSION['csrf'] ?? '', (string)$_POST['csrf']))) { http_response_code(419); exit('Invalid request. Refresh the page and try again.'); } }
 verify_csrf();
+
+/* ---------------- Sprint 2 helpers ---------------- */
+
+// PB-09: the only values allowed in registrations.attendance_status.
+const ATTENDANCE_STATUSES = ['Pending', 'Present', 'Absent'];
+
+/**
+ * PB-10: events the given student registered for that start after now and within the next 24 hours,
+ * whose reminder has not been dismissed, closest first. Uses MySQL NOW(), whose session time zone
+ * is set to Asia/Riyadh in config.php, so it matches PHP time.
+ */
+function get_upcoming_reminders($user_id) {
+    global $pdo;
+    $q = $pdo->prepare('SELECT r.id AS registration_id, e.id AS event_id, e.title, e.venue, e.event_date,
+            c.id AS club_id, c.name AS club_name
+        FROM registrations r
+        JOIN events e ON e.id = r.event_id
+        JOIN clubs c ON c.id = e.club_id
+        WHERE r.user_id = ?
+          AND r.reminder_dismissed = 0
+          AND e.event_date > NOW()
+          AND e.event_date <= DATE_ADD(NOW(), INTERVAL 24 HOUR)
+        ORDER BY e.event_date ASC');
+    $q->execute([(int)$user_id]);
+    return $q->fetchAll();
+}
+
+// PB-10: "Starts in 11 h 40 min" style label for an event start time.
+function time_remaining_label($eventDate) {
+    $seconds = strtotime($eventDate) - time();
+    if ($seconds <= 0) return 'Started';
+    $hours = intdiv($seconds, 3600);
+    $minutes = intdiv($seconds % 3600, 60);
+    if ($hours === 0 && $minutes === 0) return 'Starts in less than a minute';
+    if ($hours === 0) return 'Starts in ' . $minutes . ' min';
+    return 'Starts in ' . $hours . ' h ' . $minutes . ' min';
+}
+
+// PB-10: relative URL of the current page, used to come back after "Mark as read".
+function current_page_url() {
+    $page = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
+    $query = $_SERVER['QUERY_STRING'] ?? '';
+    return $query === '' ? $page : $page . '?' . $query;
+}
+
+// PB-10: only allow redirects back to a page of this site (prevents open redirects).
+function safe_return_url($url, $fallback = 'student-dashboard.php') {
+    $url = (string)$url;
+    return preg_match('/^[a-z0-9\-]+\.php(\?[A-Za-z0-9=&_\-]*)?(#[a-z0-9\-]+)?$/', $url) ? $url : $fallback;
+}
+
+/**
+ * PB-10: prints the reminder cards. A static guard makes sure reminders are printed only once
+ * per page, so the header and the student dashboard never show the same reminder twice.
+ */
+function render_reminders(array $reminders, $variant = 'banner') {
+    static $rendered = false;
+    if ($rendered || !$reminders) return;
+    $rendered = true;
+    $return = $variant === 'dashboard' ? 'student-dashboard.php' : current_page_url();
+    echo '<section class="reminders reminders-' . e($variant) . '" id="reminders" aria-label="Event reminders">';
+    echo '<div class="reminders-head"><span class="eyebrow">🔔 EVENT REMINDERS</span><span class="muted">'
+        . count($reminders) . ' event' . (count($reminders) === 1 ? '' : 's') . ' in the next 24 hours</span></div>';
+    foreach ($reminders as $r) {
+        echo '<article class="reminder-card">'
+            . '<div class="reminder-body">'
+            . '<span class="reminder-time">' . e(time_remaining_label($r['event_date'])) . '</span>'
+            . '<h3><a href="event.php?id=' . (int)$r['event_id'] . '">' . e($r['title']) . '</a></h3>'
+            . '<p><a class="text-link" href="club.php?id=' . (int)$r['club_id'] . '">' . e($r['club_name']) . '</a>'
+            . ' · 📍 ' . e($r['venue'])
+            . ' · ' . e(date('D, M j, Y g:i A', strtotime($r['event_date']))) . '</p>'
+            . '</div>'
+            . '<form method="post" action="dismiss-reminder.php">';
+        csrf_field();
+        echo '<input type="hidden" name="registration_id" value="' . (int)$r['registration_id'] . '">'
+            . '<input type="hidden" name="return" value="' . e($return) . '">'
+            . '<button class="btn ghost small">Mark as read</button>'
+            . '</form></article>';
+    }
+    echo '</section>';
+}
 ?>

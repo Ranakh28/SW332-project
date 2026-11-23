@@ -1,5 +1,6 @@
 CREATE DATABASE IF NOT EXISTS campusconnect CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE campusconnect;
+-- Fresh install (Sprint 1 + Sprint 2). If you already have the Sprint 1 database, import sprint2_upgrade.sql instead.
 CREATE TABLE IF NOT EXISTS users (
  id INT AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(120) NOT NULL,
@@ -43,6 +44,10 @@ CREATE TABLE IF NOT EXISTS registrations (
  user_id INT NOT NULL,
  event_id INT NOT NULL,
  registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ -- Sprint 2 - PB-09: digital attendance (one row per student per event, so no duplicate attendance)
+ attendance_status ENUM('Pending','Present','Absent') NOT NULL DEFAULT 'Pending',
+ -- Sprint 2 - PB-10: 1 = the student clicked "Mark as read" on the 24-hour reminder
+ reminder_dismissed TINYINT(1) NOT NULL DEFAULT 0,
  UNIQUE KEY unique_registration (user_id, event_id),
  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
